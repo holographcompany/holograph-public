@@ -1,0 +1,7 @@
+✅ To Open Prisma Studio for DEV
+bash
+Copy
+Edit
+npm run studio:dev
+# or
+pnpm studio:dev

@@ -1,0 +1,75 @@
+
+Holograph App – GCS File Encryption Plan
+=========================================
+
+🗓️ Date: 2025-03-31
+🔐 Purpose: Encrypt all user-uploaded files BEFORE storing them in Google Cloud Storage (GCS) to prevent even admin-level access from reading user files.
+
+Background
+----------
+Currently, files uploaded to GCS are stored in plaintext. While they are marked `public: false` and access is controlled by the Holograph app, users with admin-level access to the GCS project (like ankush@holographcompany.com) can view or download any file.
+
+We want to fix this by **adding app-level AES-256 encryption** for each file, based on the encryption key associated with the Holograph.
+
+Encryption Design
+-----------------
+We'll use AES-256-CBC encryption per file, with a unique IV (initialization vector) for each upload.
+Keys are already stored securely in the directory: `ssl-keys/<holographId>/current/key.pem`
+
+Step-by-Step Plan
+-----------------
+
+✅ STEP 1: Add Encryption Utility
+Create a file `/lib/encryption/crypto.ts`:
+
+```ts
+import crypto from 'crypto';
+import { getHolographEncryptionKey } from './keyManager'; // reads key from ssl-keys/<holographId>
+
+export async function encryptBuffer(buffer: Buffer, holographId: string): Promise<Buffer> {
+  const key = await getHolographEncryptionKey(holographId);
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const encrypted = Buffer.concat([iv, cipher.update(buffer), cipher.final()]);
+  return encrypted;
+}
+
+export async function decryptBuffer(encrypted: Buffer, holographId: string): Promise<Buffer> {
+  const key = await getHolographEncryptionKey(holographId);
+  const iv = encrypted.subarray(0, 16);
+  const content = encrypted.subarray(16);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  return Buffer.concat([decipher.update(content), decipher.final()]);
+}
+```
+
+✅ STEP 2: Update Upload Handlers (Example: Financial Accounts)
+In any file upload route (like `/api/financial-accounts`), change:
+
+```ts
+await uploadFileToGCS(file, gcsFileName);
+```
+
+to:
+
+```ts
+const buffer = await file.arrayBuffer();
+const encrypted = await encryptBuffer(Buffer.from(buffer), holographId);
+await uploadBufferToGCS(encrypted, gcsFileName, file.type);
+```
+
+✅ STEP 3: Update Download Handlers
+In download routes (e.g. `/api/financial-accounts/download`):
+- Read file from GCS as buffer
+- Decrypt using `decryptBuffer(encrypted, holographId)`
+- Return the decrypted file buffer to the user securely
+
+Benefits
+--------
+- Prevents Google admins from viewing user files
+- Maintains compliance with strong encryption-at-rest requirements
+- Fits with current key-per-Holograph SSL architecture
+
+Status
+------
+This plan is ready to implement. Start with `/lib/encryption/crypto.ts`, then update one upload and download route as a test.

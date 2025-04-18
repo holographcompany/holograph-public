@@ -1,0 +1,145 @@
+.
+├── ./Context for AI.txt
+├── ./For AI
+│   ├── ./For AI/Holograph Project Summary.txt
+│   ├── ./For AI/Project Directory Structure.txt
+│   ├── ./For AI/Project Tree.txt
+│   └── ./For AI/holograph_prisma_schema.txt
+├── ./Project_Directory_Structure.txt
+├── ./README.md
+├── ./compare.txt
+├── ./eslint.config.mjs
+├── ./gcs-key.json
+├── ./gen-folder-structure.sh
+├── ./holograph-project-overview.md
+├── ./middleware.ts
+├── ./next-env.d.ts
+├── ./next.config.ts
+├── ./package-lock.json
+├── ./package.json
+├── ./postcss.config.js
+├── ./prisma
+│   ├── ./prisma/migrations
+│   │   ├── ./prisma/migrations/20250217233747_implement_holograph_system
+│   │   │   └── ./prisma/migrations/20250217233747_implement_holograph_system/migration.sql
+│   │   ├── ./prisma/migrations/20250218171029_add_vital_documents
+│   │   │   └── ./prisma/migrations/20250218171029_add_vital_documents/migration.sql
+│   │   ├── ./prisma/migrations/20250220025053_add_invitation_table
+│   │   │   └── ./prisma/migrations/20250220025053_add_invitation_table/migration.sql
+│   │   ├── ./prisma/migrations/20250222232452_add_notes_to_vital_documents
+│   │   │   └── ./prisma/migrations/20250222232452_add_notes_to_vital_documents/migration.sql
+│   │   ├── ./prisma/migrations/20250224220502_enforce_unique_filepath_per_holograph
+│   │   │   └── ./prisma/migrations/20250224220502_enforce_unique_filepath_per_holograph/migration.sql
+│   │   ├── ./prisma/migrations/20250311023001_fix_holograph_invitation_relation
+│   │   │   └── ./prisma/migrations/20250311023001_fix_holograph_invitation_relation/migration.sql
+│   │   └── ./prisma/migrations/migration_lock.toml
+│   └── ./prisma/schema.prisma
+├── ./public
+│   ├── ./public/file.svg
+│   ├── ./public/globe.svg
+│   ├── ./public/next.svg
+│   ├── ./public/uploads
+│   │   └── ./public/uploads/AT Fake will 2.docx
+│   ├── ./public/vercel.svg
+│   └── ./public/window.svg
+├── ./script to copy files to public git without unnecessary stuff.sh
+├── ./src
+│   ├── ./src/app
+│   │   ├── ./src/app/_components
+│   │   │   ├── ./src/app/_components/HelpDialog.tsx
+│   │   │   ├── ./src/app/_components/UserDashboard.tsx
+│   │   │   ├── ./src/app/_components/SessionDebug.tsx
+│   │   │   ├── ./src/app/_components/holograph
+│   │   │   │   ├── ./src/app/_components/holograph/CreateHolograph.tsx
+│   │   │   │   ├── ./src/app/_components/holograph/InviteUserModal.tsx
+│   │   │   │   └── ./src/app/_components/holograph/ManageHolographAccess.tsx
+│   │   │   ├── ./src/app/_components/layout
+│   │   │   │   └── ./src/app/_components/layout/navbar.tsx
+│   │   │   └── ./src/app/_components/vital-documents
+│   │   │       └── ./src/app/_components/vital-documents/VitalDocumentModal.tsx
+│   │   ├── ./src/app/api
+│   │   │   ├── ./src/app/api/ai-helper
+│   │   │   │   └── ./src/app/api/ai-helper/route.ts
+│   │   │   ├── ./src/app/api/auth
+│   │   │   │   ├── ./src/app/api/auth/[...nextauth]
+│   │   │   │   │   └── ./src/app/api/auth/[...nextauth]/route.ts
+│   │   │   │   ├── ./src/app/api/auth/login
+│   │   │   │   │   └── ./src/app/api/auth/login/route.ts
+│   │   │   │   ├── ./src/app/api/auth/logout
+│   │   │   │   │   └── ./src/app/api/auth/logout/route.ts
+│   │   │   │   ├── ./src/app/api/auth/register
+│   │   │   │   │   └── ./src/app/api/auth/register/route.ts
+│   │   │   │   └── ./src/app/api/auth/user
+│   │   │   │       └── ./src/app/api/auth/user/route.ts
+│   │   │   ├── ./src/app/api/debug-session
+│   │   │   │   └── ./src/app/api/debug-session/route.ts
+│   │   │   ├── ./src/app/api/generate-signed-url
+│   │   │   │   └── ./src/app/api/generate-signed-url/route.ts
+│   │   │   ├── ./src/app/api/holograph
+│   │   │   │   ├── ./src/app/api/holograph/[id]
+│   │   │   │   │   └── ./src/app/api/holograph/[id]/route.ts
+│   │   │   │   ├── ./src/app/api/holograph/create
+│   │   │   │   │   └── ./src/app/api/holograph/create/route.ts
+│   │   │   │   ├── ./src/app/api/holograph/delegates
+│   │   │   │   │   └── ./src/app/api/holograph/delegates/route.ts
+│   │   │   │   └── ./src/app/api/holograph/principals
+│   │   │   │       └── ./src/app/api/holograph/principals/route.ts
+│   │   │   ├── ./src/app/api/invitations
+│   │   │   │   ├── ./src/app/api/invitations/[id]
+│   │   │   │   │   └── ./src/app/api/invitations/[id]/route.ts
+│   │   │   │   ├── ./src/app/api/invitations/route.ts
+│   │   │   │   └── ./src/app/api/invitations/user
+│   │   │   │       └── ./src/app/api/invitations/user/[userId]
+│   │   │   │           └── ./src/app/api/invitations/user/[userId]/route.ts
+│   │   │   ├── ./src/app/api/users
+│   │   │   │   └── ./src/app/api/users/[id]
+│   │   │   │       └── ./src/app/api/users/[id]/route.ts
+│   │   │   └── ./src/app/api/vital-documents
+│   │   │       ├── ./src/app/api/vital-documents/[id]
+│   │   │       │   └── ./src/app/api/vital-documents/[id]/route.ts
+│   │   │       ├── ./src/app/api/vital-documents/download.ts
+│   │   │       └── ./src/app/api/vital-documents/route.ts
+│   │   ├── ./src/app/auth-test
+│   │   │   └── ./src/app/auth-test/page.tsx
+│   │   ├── ./src/app/dashboard
+│   │   │   └── ./src/app/dashboard/page.tsx
+│   │   ├── ./src/app/favicon.ico
+│   │   ├── ./src/app/globals.css
+│   │   ├── ./src/app/holographs
+│   │   │   ├── ./src/app/holographs/[id]
+│   │   │   │   ├── ./src/app/holographs/[id]/page.tsx
+│   │   │   │   └── ./src/app/holographs/[id]/vital-documents
+│   │   │   │       └── ./src/app/holographs/[id]/vital-documents/page.tsx
+│   │   │   └── ./src/app/holographs/page.tsx
+│   │   ├── ./src/app/layout.tsx
+│   │   ├── ./src/app/login
+│   │   │   └── ./src/app/login/page.tsx
+│   │   ├── ./src/app/page.tsx
+│   │   ├── ./src/app/providers.tsx
+│   │   └── ./src/app/register
+│   │       └── ./src/app/register/page.tsx
+│   ├── ./src/config
+│   │   └── ./src/config/documentType.ts
+│   ├── ./src/hooks
+│   │   └── ./src/hooks/useHolograph.ts
+│   ├── ./src/lib
+│   │   ├── ./src/lib/auth.ts
+│   │   ├── ./src/lib/db.ts
+│   │   └── ./src/lib/gcs.ts
+│   ├── ./src/pages
+│   │   └── ./src/pages/api
+│   │       └── ./src/pages/api/vitalDocuments
+│   │           ├── ./src/pages/api/vitalDocuments/[holographId].ts
+│   │           ├── ./src/pages/api/vitalDocuments/delete.ts
+│   │           └── ./src/pages/api/vitalDocuments/upload.ts
+│   ├── ./src/types
+│   │   └── ./src/types/next-auth.d.ts
+│   └── ./src/utils
+│       └── ./src/utils/debug.ts
+├── ./sync-to-public.sh
+├── ./tailwind.config.ts
+├── ./tmp
+│   └── ./tmp/096d654ce62ec69a9320df001.docx
+└── ./tsconfig.json
+
+57 directories, 86 files

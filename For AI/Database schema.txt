@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  firstName          String
+  lastName           String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  // 🔐 Payment fields
+  stripeCustomerId   String?
+  subscriptionStatus String?
+
+  delegateAccess HolographDelegate[]
+  principalOf    HolographPrincipal[]
+
+  invitationsSent     Invitation[] @relation("Inviter")
+  invitationsReceived Invitation[] @relation("Invitee")
+
+  delegatePermissions DelegatePermissions[]
+
+  // 🔽 back-relations
+  ownedHolographs  Holograph[]         @relation("HolographOwner")
+  oldOwnedLogs     OwnershipAuditLog[] @relation("OldOwnerRelation")
+  currentOwnedLogs OwnershipAuditLog[] @relation("CurrentOwnerRelation") // ✅ Renamed from newOwnedLogs
+
+  // Add these for PendingPrincipalRemoval relations:
+  pendingRemovalsAsTarget   PendingPrincipalRemoval[] @relation("TargetUserRelation")
+  pendingRemovalsAsRequester PendingPrincipalRemoval[] @relation("RequestedByRelation")
+
+  // ✅ relations for VitalDocument
+  createdVitalDocuments VitalDocument[] @relation("VitalDocumentCreator")
+  updatedVitalDocuments VitalDocument[] @relation("VitalDocumentUpdater")
+
+  // ✅ relations for FinancialAccount
+  createdFinancialAccounts FinancialAccount[] @relation("FinancialAccountCreator")
+  updatedFinancialAccounts FinancialAccount[] @relation("FinancialAccountUpdater")
+
+  // ✅ relations for InsuranceAccount
+  createdInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountCreator")
+  updatedInsuranceAccounts InsuranceAccount[] @relation("InsuranceAccountUpdater")
+
+  // ✅ relations for Property
+  createdProperties Property[] @relation("PropertyCreator")
+  updatedProperties Property[] @relation("PropertyUpdater")
+
+  // ✅ relations for PersonalProperty
+  createdPersonalProperties PersonalProperty[] @relation("PersonalPropertyCreator")
+  updatedPersonalProperties PersonalProperty[] @relation("PersonalPropertyUpdater")
+}
+
+
+model Holograph {
+  id                  String                @id @default(uuid())
+  title               String
+  geography           String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  sslCertPath         String?
+  sslKeyPath          String?
+  aesKeyPath          String?  // 🔐 NEW: Path to AES encryption key
+  delegates           HolographDelegate[]
+  principals          HolographPrincipal[]
+  sections            HolographSection[]
+  delegatePermissions DelegatePermissions[]
+
+  // Ownership
+  ownerId            String
+  owner              User                @relation("HolographOwner", fields: [ownerId], references: [id])
+  ownershipAuditLogs OwnershipAuditLog[]
+
+  //adding and removing delegates and principals
+  invitations         Invitation[]
+  pendingPrincipalRemovals PendingPrincipalRemoval[] // removing principals
+
+  //holograph sections
+  vitalDocuments      VitalDocument[] // need one for each Holograph Section
+  financialAccounts FinancialAccount[] 
+  insuranceAccounts InsuranceAccount[] 
+  Properties Property[]
+  PersonalProperties PersonalProperty[] 
+}
+
+// establishes an owner for the holograph who is responsible for payment
+model OwnershipAuditLog {
+  id             String   @id @default(uuid())
+  holographId    String
+  oldOwnerId     String? // Optional for first ownership, required for transfers (enforced in app logic)
+  currentOwnerId String
+  changedAt      DateTime @default(now())
+
+  holograph    Holograph @relation(fields: [holographId], references: [id])
+  oldOwner     User?     @relation("OldOwnerRelation", fields: [oldOwnerId], references: [id])
+  currentOwner User      @relation("CurrentOwnerRelation", fields: [currentOwnerId], references: [id])
+}
+
+model HolographPrincipal {
+  id          String    @id @default(uuid())
+  holographId String
+  userId      String
+  addedAt     DateTime  @default(now())
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([holographId, userId])
+}
+
+model HolographDelegate {
+  id          String    @id @default(uuid())
+  holographId String
+  userId      String
+  assignedAt  DateTime  @default(now())
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([holographId, userId])
+}
+
+model Invitation {
+  id          String   @id @default(uuid())
+  holographId String
+  inviterId   String
+  inviteeId   String // ✅ New field for user ID instead of email
+  role        String
+  status      String   @default("Pending")
+  createdAt   DateTime @default(now())
+
+  holograph Holograph @relation(fields: [holographId], references: [id])
+  inviter   User      @relation(fields: [inviterId], references: [id], name: "Inviter")
+  invitee   User      @relation(fields: [inviteeId], references: [id], name: "Invitee") // ✅ New relation
+
+  @@unique([holographId, inviteeId]) // Updated to use inviteeId
+}
+
+model PendingPrincipalRemoval {
+  id             String   @id @default(uuid())
+  holographId    String
+  targetUserId   String
+  requestedById  String
+  status         String   @default("Pending")
+  createdAt      DateTime @default(now())
+
+  holograph     Holograph @relation(fields: [holographId], references: [id])
+  targetUser    User      @relation("TargetUserRelation", fields: [targetUserId], references: [id])
+  requestedBy   User      @relation("RequestedByRelation", fields: [requestedById], references: [id])
+
+  @@unique([holographId, targetUserId])
+}
+
+
+// Determines what access level Delegates have to each Holograph Section
+model DelegatePermissions {
+  id          String @id @default(uuid())
+  holographId String
+  delegateId  String
+  sectionId   String // ✅ Foreign key to HolographSection
+  accessLevel String // "none" or "view-only"
+
+  holograph Holograph        @relation(fields: [holographId], references: [id], onDelete: Cascade)
+  delegate  User             @relation(fields: [delegateId], references: [id], onDelete: Cascade)
+  section   HolographSection @relation(fields: [sectionId], references: [id], onDelete: Cascade) // ✅ Added relation
+
+  @@unique([holographId, delegateId, sectionId]) // Ensure one entry per section per delegate
+}
+
+// Table for Holograph sections so they can be added dynamically
+model Section {
+  id          String             @id @default(uuid())
+  name        String             @unique // "Financial Accounts"
+  slug        String             @unique // "financial_accounts"
+  description String? // Explanation of the section
+  iconSlug    String? // Matches a key in the `icons.ts` file
+  isDefault   Boolean            @default(true) // Determines if it's a default section
+  createdAt   DateTime           @default(now())
+  order       Int                @default(0) // ✅ Controls display order
+  holographs  HolographSection[] // ✅ Add this to establish the relation
+}
+
+// ties Sections to Holographs
+model HolographSection {
+  id          String @id @default(uuid())
+  holographId String
+  sectionId   String
+  order       Int    @default(0) // ✅ Controls layout order per Holograph
+
+  holograph           Holograph             @relation(fields: [holographId], references: [id])
+  section             Section               @relation(fields: [sectionId], references: [id])
+  delegatePermissions DelegatePermissions[] // ✅ Added relation back to DelegatePermissions
+
+  @@unique([holographId, sectionId]) // Prevent duplicate entries
+}
+
+
+//
+//  **** Holograph Sections
+//
+
+// documents such as wills, trusts, medical directives
+model VitalDocument {
+  id          String    @id @default(uuid())
+  holographId String
+  name        String    // Encrypted with AES
+  nameKey     String    // Encrypted AES Key for `name`
+  nameIV      String    // IV for `name`
+
+  type        String    // Will, Trust, etc.
+  filePath    String    // Path to the uploaded file
+  uploadedBy  String    // User ID of the uploader
+
+  notes       String?   @db.Text   // Encrypted with AES
+  notesKey    String?              // Encrypted AES Key for `notes`
+  notesIV     String?              // IV for `notes`
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("VitalDocumentCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("VitalDocumentUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+// financial accounts such as bank accounts, investment accounts
+model FinancialAccount {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  institution String  // Bank, Brokerage, etc. (Encrypted)
+  institutionKey String
+  institutionIV  String
+
+  accountType String   // Checking, Savings, 401k, etc.
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Make uploadedBy optional (was required before)
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("FinancialAccountCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("FinancialAccountUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+
+// Insurance accounts like Life, Auto, Home, Liability, etc.
+model InsuranceAccount {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  provider    String  // Insurance company (Encrypted)
+  providerKey String
+  providerIV  String
+
+  policyType  String   // Life, Auto, Health, etc.
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("InsuranceAccountCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("InsuranceAccountUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+
+// Real Property such as a primary residence or vacation home
+model Property {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  propertyType  String   // Primary residence, second home, vacation property etc
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("PropertyCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("PropertyUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+
+// Personal Property such as a vehicle or jewelry
+model PersonalProperty {
+  id          String   @id @default(uuid())
+  holographId String
+  name        String   // Encrypted with AES
+  nameKey     String
+  nameIV      String
+
+  filePath    String?   // Uploaded file path (optional)
+  uploadedBy  String?   // ✅ Keep this field for tracking who uploaded files
+
+  notes       String?   @db.Text   // Encrypted
+  notesKey    String?
+  notesIV     String?
+
+  createdBy   String   // ✅ User ID of the creator
+  updatedBy   String?  // ✅ User ID of the last person to modify this record
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  holograph   Holograph @relation(fields: [holographId], references: [id])
+
+  creator     User      @relation("PersonalPropertyCreator", fields: [createdBy], references: [id]) // ✅ Relation name
+  updater     User?     @relation("PersonalPropertyUpdater", fields: [updatedBy], references: [id]) // ✅ Relation name
+
+  @@unique([holographId, filePath])
+}
+

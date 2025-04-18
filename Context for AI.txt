@@ -1,0 +1,108 @@
+# Holograph App – Architectural Overview
+
+## Overview
+The **Holograph app** is a **web-based end-of-life planning solution** that helps users securely store vital documents, financial information, and transition instructions. Users create a **Holograph**, which serves as a digital estate plan.
+
+Each **Holograph** includes:
+- Legal documents (e.g., Wills, Trusts, Health Directives)
+- Financial and insurance account transition instructions
+- Digital asset and service management
+
+### User Roles:
+1. **Principals** – Owners of the Holograph with full control over its contents.
+2. **Delegates** – Users assigned to manage the Holograph after the Principal’s passing (read-only access).
+
+---
+
+## Technology Stack
+- **Frontend**: Next.js (React-based framework with App Router)
+- **Backend**: Node.js with Prisma ORM
+- **Database**: PostgreSQL (hosted via Prisma)
+- **File Storage**: Google Cloud Storage (GCS) with signed URLs for secure uploads and downloads
+- **Authentication**: NextAuth.js (JWT-based auth system)
+- **UI Framework**: Tailwind CSS
+
+---
+
+## Security & Compliance
+- **Encryption Model**: Every user’s data is encrypted using a **unique SSL certificate per user**.
+- **Access Control**: Documents are stored in **Google Cloud Storage (GCS)** and require authentication for access.
+- **API Security**: Sensitive endpoints use **authenticated API proxy routes** to prevent unauthorized access.
+
+---
+
+## Key Features & API Structure
+
+### 1. User Authentication & Access Control
+- Implemented using **NextAuth.js** with JWT-based authentication.
+- **API Routes**:
+  - `/api/auth/login` – User login
+  - `/api/auth/logout` – User logout
+  - `/api/auth/register` – New user registration
+
+### 2. Holograph Creation & Management
+- Users can **create and manage multiple Holographs**.
+- **Database Models**:
+  - `Holograph` (Main entity)
+  - `HolographPrincipal` (Manages ownership access)
+  - `HolographDelegate` (Manages read-only access)
+- **API Routes**:
+  - `/api/holograph/create` – Creates a new Holograph.
+  - `/api/holograph/[id]` – Fetches a specific Holograph.
+  - `/api/holograph/principals` – Manages Principal access.
+  - `/api/holograph/delegates` – Manages Delegate access.
+
+### 3. Vital Document Management
+- Users can **upload, view, edit, and delete** vital documents (e.g., Wills, Trusts, Health Directives).
+- **Database Model**:
+  - `VitalDocument`
+    - `id`: Unique identifier
+    - `holographId`: Linked Holograph ID
+    - `name`: Document name
+    - `type`: Document category (Will, Trust, etc.)
+    - `filePath`: Path to the file in **Google Cloud Storage**
+    - `notes`: User-provided notes
+    - `uploadedBy`: ID of the uploader
+- **API Routes**:
+  - `/api/vital-documents/` – Create & fetch documents.
+  - `/api/vital-documents/[id]` – Edit & delete documents.
+  - `/api/vital-documents/download` – Secure download endpoint.
+
+### 4. Invitation System
+- **Principals can invite others** to join a Holograph as **Principals or Delegates**.
+- **Database Model**:
+  - `Invitation`
+    - `holographId`: Linked Holograph ID
+    - `inviterId`: ID of the user sending the invite
+    - `inviteeEmail`: Email of the invited user
+    - `role`: `"Principal"` or `"Delegate"`
+    - `status`: `"Pending"`, `"Accepted"`, or `"Declined"`
+- **API Routes**:
+  - `/api/invitations/user/[userId]` – Fetch invitations for a user.
+  - `/api/invitations/[id]` – Accept or decline an invitation.
+
+### 5. Google Cloud Storage (GCS) Integration
+- **Signed URLs** are used to securely **upload and download** files.
+- **Security Measures**:
+  - Only **Principals & Delegates** can access files.
+  - Downloads require **authentication**.
+- **API Route**:
+  - `/api/vital-documents/download` – Authenticated download route.
+
+---
+
+## Next Development Priorities
+1. **Fix Bug**: Editing a document without uploading a new file currently throws an error.
+2. **Enhance UI**: Apply a **modern and somber theme** suitable for the end-of-life topic.
+3. **Expand Features**: Add support for **financial accounts & digital assets**.
+4. **Improve Security**: Strengthen **file encryption** and **download authentication**.
+5. **Fix Refresh Issues**: Some UI elements don’t update correctly after changes.
+
+---
+
+## Conclusion
+The **Holograph app** is a **highly secure, well-structured end-of-life planning platform**. 
+It combines **Next.js**, **Prisma**, and **Google Cloud Storage** to offer a **secure, 
+user-friendly experience** with **granular access control**. The **Prisma schema, API routes, 
+and cloud integration** ensure a **robust backend**, while the **Next.js UI** provides an **intuitive, 
+clean user interface**.

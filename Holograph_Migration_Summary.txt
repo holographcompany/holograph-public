@@ -1,0 +1,90 @@
+
+Holograph Hosting Migration Summary
+====================================
+
+Date: April 01, 2025
+
+This document summarizes the current status and next steps for migrating the Holograph app
+to its new hosting environment on Google Cloud Platform (GCP).
+
+------------------------------------------------------------
+1. PROJECT STATUS
+------------------------------------------------------------
+- Project Name: Holograph
+- Current Hosting:
+  - Frontend: Vercel
+  - Backend: Heroku (to be replaced)
+  - Domain: www.holographcompany.com (Porkbun)
+- Current Progress:
+  - 5 of 10 Holograph sections completed
+  - Security review completed
+  - Ready to move to production hosting
+- GCP account already exists and is used for file storage (GCS)
+
+------------------------------------------------------------
+2. FINAL HOSTING DECISION
+------------------------------------------------------------
+Based on criteria:
+1) Application Security
+2) Ease of Maintenance
+3) Reasonable Cost (must stay under $10/user/year)
+
+✅ Frontend: Vercel (Next.js optimized, easy to maintain)
+✅ Backend: Google Cloud Run (auto-scaling, secure)
+✅ Database: Google Cloud SQL (PostgreSQL)
+✅ File Storage: Google Cloud Storage (GCS)
+
+Estimated Cost: ~$5/user/year for hosting
+
+------------------------------------------------------------
+3. MIGRATION STRATEGY
+------------------------------------------------------------
+✅ Monorepo Strategy (recommended for solo founder)
+- Repo: holograph-public2 (public GitHub repo for AI assistant access)
+- Structure:
+  /apps
+    ├── frontend/ (Next.js for Vercel)
+    └── backend/  (Node.js for Cloud Run)
+  /packages (optional shared code)
+  /prisma (schema stays with backend)
+  /public (frontend assets)
+
+Frontend:
+- Will remain on Vercel
+- Connect to Cloud Run backend via NEXT_PUBLIC_API_URL
+
+Backend:
+- Migrate to GCP Cloud Run
+- Use req.formData() for API POST handlers
+- Deploy with Docker (or node environment)
+- Access PostgreSQL via Cloud SQL
+
+Database:
+- Deploy PostgreSQL to Cloud SQL
+- Secure with private IP and IAM roles
+- Store secrets in GCP Secret Manager
+
+Storage:
+- Already using Google Cloud Storage
+- Signed URLs used for uploads/downloads
+- Follows SSL-based encryption per user
+
+Domain:
+- Point domain www.holographcompany.com (Porkbun) to Vercel + Cloud Run
+- Use GCP Load Balancer if needed for SSL routing to backend
+
+------------------------------------------------------------
+4. NEXT STEPS (when ready)
+------------------------------------------------------------
+1. Set up new GCP project (or use existing one)
+2. Deploy PostgreSQL to Cloud SQL
+3. Dockerize and deploy backend to Cloud Run
+4. Move current backend code to /apps/backend
+5. Update frontend API calls to use Cloud Run URL
+6. Confirm Vercel and GCP domain configuration
+7. Validate uploads/downloads via GCS work correctly
+8. Test entire flow with 5 completed sections
+9. Continue building remaining 5 sections post-migration
+
+This summary ensures continuity when development resumes.
+

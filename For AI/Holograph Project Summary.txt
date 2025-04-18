@@ -1,0 +1,158 @@
+# Holograph Project Summary (2025 Edition – Updated)
+
+
+HI checking!!
+
+
+## Overview
+Holograph is a secure web-based application for end-of-life planning. It allows individuals to store and manage critical documents—such as wills, trusts, medical directives, and account instructions—in one encrypted space. The platform supports collaboration with trusted Delegates and ensures robust data protection with per-Holograph SSL and AES encryption.
+
+## Core Concepts
+
+### User Roles
+1. **Principals** – Users who own or co-manage a Holograph. They control content, assign users, and manage permissions.
+2. **Delegates** – Trusted users who receive access to manage or view the Holograph after the Principal's death. Their permissions are configurable per section.
+
+### Holograph Structure Example
+- **Holograph1**
+  - Principals: User1, User2
+  - Delegate: User3
+- **Holograph2**
+  - Principal: User3
+  - Delegate: User4
+
+## Security Model
+
+### Encryption
+- **Database Fields**: Encrypted per Holograph using hybrid RSA-AES encryption.
+- **Files**: Uploaded files are encrypted client-side using AES and stored securely in GCS.
+- **Keys**:
+  - `ssl-keys/<holographId>/current/` stores the SSL certificate and private key for each Holograph.
+  - AES keys for document encryption are stored in the same path.
+
+### Permissions
+- Principals have full control.
+- Delegates get “View Only” access by default, which can be adjusted per section.
+- All role logic enforced in both backend and frontend.
+
+### Authentication
+- Handled with **NextAuth.js**.
+- Protected API routes and pages.
+- Delegate/Principal verification before access is granted.
+
+## Technology Stack
+- **Frontend**: React (Next.js), Tailwind CSS
+- **Backend**: Node.js, Prisma
+- **Database**: PostgreSQL
+- **File Storage**: Google Cloud Storage (GCS)
+- **Authentication**: NextAuth.js
+- **Encryption**: Node.js Crypto library + SSL/AES keys
+- **Validation**: Zod schema validation for server-side input checking
+
+## Functional Areas Completed
+- Vital Documents (full CRUD + encryption)
+- Financial Accounts (full CRUD + encryption)
+- Personal Property (full CRUD + encryption)
+- Secure file upload with client-side encryption
+- Secure file download with authenticated API proxy
+- Role-based access for Principals and Delegates
+- Principal/Delegate invitation system
+- Pending Principal removal flow
+- Full audit logging of Holograph ownership
+- Section-based permissions model
+
+## Upcoming
+- Add remaining sections (Insurance, Digital Assets, Subscriptions, Services)
+- Finalize visual design and AI assistant
+- Full GCP backend migration (Heroku will be deprecated)
+- Stripe subscription integration
+- Full page security audit
+
+
+(Directory structure preserved exactly from your original document. Updated as needed based on database structure and active code.)
+
+## Database Highlights (from schema)
+- User-Holograph relationships modeled through `HolographPrincipal` and `HolographDelegate`
+- All document types (Vital, Financial, Insurance, Property, PersonalProperty) support:
+  - Encrypted `name`, `notes`, and optional `filePath`
+  - Audit fields: `createdBy`, `updatedBy`, `uploadedBy`
+  - Unique constraint: `(holographId, filePath)`
+- Delegates receive permissions per section via `DelegatePermissions`
+- Section metadata tracked via `Section` and `HolographSection` models
+- Principal removal confirmation flow handled by `PendingPrincipalRemoval`
+
+
+
+## Project Directory Structure
+
+```
+holograph-public2/
+├── For AI/                             # Directory containing AI-related context files
+│   ├── Context for AI.txt              # Text file providing context for AI integration
+│   └── Project_Directory_Structure.txt # Text file detailing the project's directory structure
+├── prisma/                             # Directory for Prisma schema and migrations
+├── public/                             # Public assets directory
+├── src/                                # Source code directory
+│   ├── app/                            # Main application directory
+│   │   ├── (auth)/                     # Authentication-related pages
+│   │   ├── api/                        # API routes
+│   │   │   ├── auth/                   # Authentication API routes
+│   │   │   ├── financial-accounts/     # Financial accounts API routes
+│   │   │   ├── holograph/              # Holograph CRUD and user management API routes
+│   │   │   ├── invitations/            # Invitation handling API routes
+│   │   │   ├── vital-documents/        # Vital documents API routes
+│   │   │   └── route.ts                # API route definitions
+│   │   ├── dashboard/                  # User dashboard pages
+│   │   │   └── user-profile/           # User profile management pages
+│   │   ├── holographs/                 # Holograph detail pages
+│   │   │   ├── [id]/                   # Dynamic Holograph ID route
+│   │   │   │   ├── manage-users/       # Manage Principals & Delegates pages
+│   │   │   │   ├── vital-documents/    # Manage Vital Documents per Holograph pages
+│   │   │   │   └── financial-accounts/ # Manage Financial Accounts per Holograph pages
+│   │   │   └── page.tsx                # Holographs page component
+│   │   ├── layout.tsx                  # Main layout component
+│   │   ├── page.tsx                    # Main page component
+│   │   └── route.ts                    # Route definitions
+│   ├── components/                     # Shared React components
+│   │   ├── financial-accounts/         # Financial accounts components
+│   │   │   ├── FinancialAccountModal.tsx # Modal for adding/editing financial accounts
+│   │   │   └── FinancialAccountTable.tsx # Table displaying financial accounts
+│   │   ├── vital-documents/            # Vital documents components
+│   │   │   ├── VitalDocumentModal.tsx  # Modal for adding/editing vital documents
+│   │   │   └── VitalDocumentTable.tsx  # Table displaying vital documents
+│   │   ├── forms/                      # Form components
+│   │   ├── ui/                         # UI components (buttons, modals, etc.)
+│   │   └── layout/                     # Layout components
+│   ├── config/                         # Configuration files
+│   │   ├── financialAccountType.ts     # Financial account types configuration
+│   │   ├── icons.ts                    # Icon configurations
+│   │   └── site.ts                     # Site-wide configurations
+│   ├── hooks/                          # Custom React hooks
+│   │   ├── useHolograph.ts             # Hook for accessing Holograph data
+│   │   └── useSectionAccess.ts         # Hook for section access control
+│   ├── lib/                            # Library utilities
+│   │   ├── auth.ts                     # Authentication utilities
+│   │   ├── db.ts                       # Database utilities
+│   │   ├── encryption.ts               # Encryption utilities
+│   │   ├── logger.ts                   # Logging utilities
+│   │   └── utils.ts                    # General utilities
+│   ├── styles/                         # Global styles
+│   │   ├── globals.css                 # Global CSS styles
+│   │   └── tailwind.css                # Tailwind CSS styles
+│   ├── types/                          # TypeScript type definitions
+│   └── utils/                          # Helper functions
+│       ├── debug.ts                    # Debugging utilities
+│       ├── encryption.ts               # Encryption helper functions
+│       └── helpers.ts                  # General helper functions
+├── .gitignore                          # Git ignore file
+├── README.md                           # Project README file
+├── eslint.config.mjs                   # ESLint configuration
+├── next.config.ts                      # Next.js configuration
+├── package-lock.json                   # Package lock file
+├── package.json                        # Package configuration file
+├── postcss.config.js                   # PostCSS configuration
+├── tailwind.config.ts                  # Tailwind CSS configuration
+└── tsconfig.json                       # TypeScript configuration
+```
+
+This directory structure provides an up-to-date reference for the Holograph project, ensuring consistency across development and deployment processes.

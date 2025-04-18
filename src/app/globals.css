@@ -1,0 +1,179 @@
+/* globals.css - Updated styles for a modern and somber look */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apply a consistent sans-serif font */
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1a1a;
+    color: #ddd;
+  }
+}
+
+/* Headings */
+h1, h2, h3 {
+  font-family: inherit;
+  font-weight: bold;
+  color: #243c5a;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: #4972A1;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+.btn-primary:hover {
+  background-color: #345980;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: #555;
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+.btn-secondary:hover {
+  background-color: #444;
+}
+
+/* Cards */
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: scale(1.02);
+}
+
+/* Holograph List Items */
+.holograph-item {
+  border-left: 5px solid #4972A1;
+  background: #eef2f7;
+  padding: 1rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.holograph-item:hover {
+  background: #e0ebf5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card, .holograph-item {
+    background: rgba(50, 50, 50, 0.9);
+    color: #ddd;
+  }
+}
+
+
+
+
+
+/*********************************
+/* Basic reset and defaults */
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+button {
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: #4972A1;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+.btn-primary:hover {
+  background-color: #345980;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: #555;
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+.btn-secondary:hover {
+  background-color: #444;
+}
+
+
+input, textarea {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+:root {
+  --background: #f5f5f5;
+  --foreground: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a1a;
+    --foreground: #ededed;
+  }
+}
+
+/* Utility-style icon buttons (same look, reusable in Tailwind JSX) */
+.btn-cancel {
+  @apply flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition disabled:opacity-50;
+}
+
+.btn-save {
+  @apply flex items-center gap-2 px-4 py-2 text-white rounded transition disabled:opacity-50;
+  background-color: #4972A1;
+}
+.btn-save:hover {
+  background-color: #345980;
+}
+
+.btn-save-conditional {
+  @apply flex items-center gap-2 px-4 py-2 text-white rounded transition;
+}
+
+.btn-save-conditional:disabled {
+  background-color: #7d98b3; /* softer blue-grey */
+  @apply cursor-not-allowed opacity-70;
+}
+
+.btn-save-conditional:not(:disabled) {
+  background-color: #4972A1;
+}
+
+.btn-save-conditional:not(:disabled):hover {
+  background-color: #345980;
+}
+
+

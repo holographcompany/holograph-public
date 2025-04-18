@@ -1,0 +1,343 @@
+I'll prepare a detailed migration plan for you. Here's a comprehensive analysis of the issues we've faced and our proposed solution.
+
+# Holograph App Architecture Migration Plan
+
+## Current Issues Faced
+
+The Holograph app is currently experiencing authentication issues in production due to a split architecture between Vercel and Google Cloud:
+
+1. **Cross-Domain Authentication Problems**:
+   - NextAuth.js is designed to work best when all authentication endpoints are on the same domain
+   - Currently, the frontend is hosted on Vercel (www.holographcompany.com) while the API routes, including authentication, are hosted on Google Cloud Run
+   - This results in cookie-based authentication failures due to same-origin policy restrictions
+
+2. **Specific Error Manifestations**:
+   - 500 Internal Server Error when trying to register/login
+   - NextAuth errors: "Unexpected token '<', '<html><hea'... is not valid JSON"
+   - Forbidden errors when redirecting to error pages
+   - Missing DATABASE_URL environment variable on Vercel
+
+3. **Cloud Run Authentication Requirements**:
+   - Google Cloud Run services require authentication by default
+   - Attempts to access Cloud Run endpoints from Vercel are being rejected with authentication errors
+   - The logs show: "The request was not authenticated. Either allow unauthenticated invocations or set the proper Authorization header."
+
+4. **Environment Variable Mismatches**:
+   - DATABASE_URL is available on Cloud Run but not on Vercel
+   - NextAuth configuration expects specific environment variables that may not be consistent across platforms
+
+## Architecture Insights
+
+After analyzing your application, we've identified that the current split architecture is causing unnecessary complexity and integration challenges:
+
+1. **Vercel's Expanding Capabilities**:
+   - Vercel has significantly expanded beyond static hosting to include robust serverless functions and database integrations
+   - Next.js is specifically optimized for Vercel, providing better performance and developer experience
+
+2. **Google Cloud Strengths**:
+   - GCS excels at cost-effective file storage and SSL storage
+   - Over-utilizing Google Cloud for features that Vercel handles well is creating unnecessary complexity
+
+3. **Authentication Best Practices**:
+   - Authentication should ideally live on the same domain as the frontend to avoid cross-domain cookie issues
+   - NextAuth.js works best when all auth routes (/api/auth/*) are hosted on the same domain as the frontend
+
+## Proposed Migration Plan
+
+We recommend a phased approach to migrate your authentication and API routes to Vercel while keeping Google Cloud Storage for file handling:
+
+### Phase 1: Move Authentication to Vercel (Immediate Goal)
+
+1. **Update Environment Variables on Vercel**:
+   - Add DATABASE_URL to Vercel environment variables (same as your production database URL)
+   - Add all NextAuth-related environment variables:
+     - NEXTAUTH_URL=https://www.holographcompany.com
+     - NEXTAUTH_SECRET (same value as in Cloud Run)
+     - JWT_SECRET (if used)
+     - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (for OAuth)
+
+2. **Confirm NextAuth Routes on Vercel**:
+   - Ensure `/api/auth/[...nextauth]` and related auth routes are properly set up
+   - Modify NextAuth configuration to work properly with your database
+   - Update any auth-related middleware or API handlers
+
+3. **Update Database Access Code**:
+   - Ensure Prisma client initialization properly handles the DATABASE_URL env variable
+   - Add error handling for database connections
+   - Update any direct database calls in auth routes
+
+4. **Testing & Validation**:
+   - Test authentication routes on Vercel (registration, login, session management)
+   - Validate that cookies are being properly set and maintained
+   - Ensure database connections are working correctly
+
+### Phase 2: Migrate Additional API Routes to Vercel (Follow-up)
+
+1. **Identify API Routes to Migrate**:
+   - Prioritize routes that interact closely with authentication
+   - Create a list of endpoints that should move to Vercel
+
+2. **Implement Serverless Functions**:
+   - Move API routes to Vercel serverless functions
+   - Update any database access code
+   - Ensure proper error handling
+
+3. **Update Frontend API Calls**:
+   - Update any hardcoded API URLs to use relative paths
+   - Remove any explicit cross-domain requests where possible
+
+4. **GCS Integration from Vercel**:
+   - Set up Google Cloud credentials on Vercel
+   - Update file handling code to access GCS from Vercel functions
+
+### Phase 3: Optimize Architecture (Future)
+
+1. **Consider Vercel Storage Solutions**:
+   - Evaluate Vercel KV, Postgres, or Blob Storage for certain data
+   - Potentially migrate some storage from GCS if appropriate
+
+2. **Set Up Proper Monitoring**:
+   - Implement logging and monitoring across both platforms
+   - Create alerting for critical failures
+
+3. **Optimize Performance**:
+   - Use Vercel Edge Functions for global performance
+   - Implement proper caching strategies
+
+## Implementation Details
+
+### 1. Environment Variables Setup
+
+First, ensure these environment variables are set in Vercel:
+
+```
+DATABASE_URL=postgresql://username:password@hostname:port/database
+NEXTAUTH_URL=https://www.holographcompany.com
+NEXTAUTH_SECRET=your-nextauth-secret
+JWT_SECRET=your-jwt-secret
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GCS_BUCKET_NAME=holograph-prod-documents
+GOOGLE_CLOUD_PROJECT=holograph-app
+```
+
+### 2. NextAuth Configuration Updates
+
+Update your `src/lib/auth.ts` to ensure it works properly on Vercel:
+
+```typescript
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
+import { AuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { debugLog } from "@/utils/debug";
+
+// Initialize Prisma Client
+const prisma = new PrismaClient();
+
+export const getAuthOptions = async (): Promise<AuthOptions> => {
+  // Debug logging for environment variables
+  debugLog("Auth Options Environment:", {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+    NODE_ENV: process.env.NODE_ENV,
+  });
+
+  return {
+    adapter: PrismaAdapter(prisma),
+    providers: [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID || "",
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      }),
+      CredentialsProvider({
+        // Your credentials provider configuration
+        name: "Credentials",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          // Your authorization logic
+          // Return user object or null
+        },
+      }),
+    ],
+    session: {
+      strategy: "jwt",
+    },
+    cookies: {
+      sessionToken: {
+        name: `next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+        },
+      },
+    },
+    pages: {
+      signIn: "/login",
+      error: "/auth/error",
+    },
+    callbacks: {
+      // Your callback functions
+      async session({ session, token }) {
+        // Add user data to session
+        return session;
+      },
+      async jwt({ token, user }) {
+        // Add user data to JWT
+        return token;
+      },
+    },
+    debug: process.env.NODE_ENV === "development",
+  };
+};
+```
+
+### 3. Update NextAuth Route Handler
+
+Update your `src/app/api/auth/[...nextauth]/route.ts`:
+
+```typescript
+import NextAuth from 'next-auth';
+import { debugLog } from '@/utils/debug';
+import { getAuthOptions } from '@/lib/auth';
+
+// Force dynamic rendering to ensure we don't use cached responses
+export const dynamic = "force-dynamic";
+
+// Use Node.js runtime for NextAuth
+export const runtime = "nodejs";
+
+// Debug logging for environment variables
+console.log("🔑 NextAuth Route Handler - Environment Check:", {
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL || "Not set",
+  NODE_ENV: process.env.NODE_ENV,
+  HAS_DATABASE_URL: !!process.env.DATABASE_URL
+});
+
+const handler = async () => {
+  debugLog("📦 Loading auth handler dynamically");
+  
+  try {
+    const authOptions = await getAuthOptions();
+    return NextAuth(authOptions);
+  } catch (error) {
+    console.error("NextAuth initialization error:", error);
+    throw error;
+  }
+};
+
+// Export the awaited handler
+const authHandler = await handler();
+export { authHandler as GET, authHandler as POST };
+```
+
+### 4. Update Prisma Client Initialization
+
+Create or update your Prisma client initialization (e.g., in `src/lib/prisma.ts`):
+
+```typescript
+import { PrismaClient } from '@prisma/client';
+import { debugLog } from '@/utils/debug';
+
+// Check environment variables
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL environment variable is not set!");
+}
+
+// Add prisma to the global type
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+// Prevent multiple instances during development
+export const prisma = global.prisma || new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
+
+// Add debugging for Prisma initialization
+try {
+  debugLog("Prisma initialization - Environment:", {
+    NODE_ENV: process.env.NODE_ENV,
+    HAS_DATABASE_URL: !!process.env.DATABASE_URL,
+  });
+  
+  // Test database connection
+  prisma.$connect()
+    .then(() => debugLog("Database connected successfully"))
+    .catch((err) => console.error("Database connection failed:", err));
+    
+} catch (error) {
+  console.error("Prisma initialization error:", error);
+}
+
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+```
+
+### 5. Remove Cloud Run Rewrites
+
+Once authentication is working on Vercel, you can remove the rewrites from `nextconfig.ts`:
+
+```typescript
+// nextconfig.ts
+import type { NextConfig } from "next";
+
+// Environment variable handling
+if (process.env.NODE_ENV === "production") {
+  process.env.DATABASE_URL ||= "file:skip-prisma-validation";
+  process.env.GCS_BUCKET_NAME ||= "fake-bucket-for-build";
+  process.env.GOOGLE_CLOUD_PROJECT ||= "fake-project-for-build";
+}
+
+const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/holographs",
+        destination: "/dashboard",
+        permanent: false,
+      },
+    ];
+  },
+  // Remove the rewrites section once authentication is working on Vercel
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+};
+
+export default nextConfig;
+```
+
+## Rollback Plan
+
+If issues arise during migration, here's a rollback strategy:
+
+1. **Code Rollback**:
+   - Maintain the original authentication code in a separate branch
+   - If issues occur, revert to this branch and redeploy
+
+2. **Environment Configuration Rollback**:
+   - Keep a backup of all environment variables
+   - Be prepared to switch back to the original configuration if needed
+
+3. **Incremental Testing**:
+   - Test each step thoroughly before proceeding to the next
+   - Have multiple team members verify functionality
+
+4. **Monitoring During Migration**:
+   - Implement detailed logging during the migration
+   - Monitor error rates and user sessions closely
+
+## Conclusion
+
+This migration plan offers a structured approach to resolve the current authentication issues by leveraging Vercel's strengths for Next.js applications while maintaining GCS for file storage. The phased approach allows for careful testing and validation at each step, minimizing the risk of disruption to your users.
+
+By consolidating your frontend and authentication on Vercel, you'll eliminate the cross-domain issues that are currently causing problems, simplify your architecture, and potentially reduce operational complexity in the long term.
